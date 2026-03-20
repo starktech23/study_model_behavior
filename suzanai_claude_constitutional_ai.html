@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constitutional AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d14;
+    --surface: #14141f;
+    --border: #2a2a3e;
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.25);
+    --amber-glow: rgba(245,166,35,0.08);
+    --white: #ffffff;
+    --off: rgba(255,255,255,0.70);
+    --green: #3ddc84;
+    --red: #ff6b6b;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; background:var(--bg); color:var(--white); font-family:'Inter',sans-serif; overflow:hidden; }
+
+  .deck { width:100vw; height:100vh; position:relative; }
+
+  .slide {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    padding:72px 100px 108px;
+    opacity:0; pointer-events:none; transform:translateY(28px);
+    transition:opacity 0.5s ease, transform 0.5s ease;
+  }
+  .slide.active { opacity:1; pointer-events:all; transform:translateY(0); }
+  .slide.out { opacity:0; transform:translateY(-28px); transition:opacity 0.3s, transform 0.3s; }
+
+  .bar { position:fixed; top:0; left:0; height:3px; background:var(--amber); box-shadow:0 0 14px var(--amber); transition:width 0.5s ease; z-index:99; }
+
+  nav {
+    position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:20px;
+    background:rgba(13,13,20,0.95); border:1px solid var(--border);
+    padding:12px 24px; backdrop-filter:blur(20px); z-index:99;
+  }
+  .nb { background:none; border:1px solid var(--border); color:rgba(255,255,255,0.4); padding:8px 22px; font-family:'DM Mono',monospace; font-size:13px; cursor:pointer; letter-spacing:0.05em; transition:all 0.2s; }
+  .nb:hover { border-color:var(--amber); color:var(--amber); }
+  .dots { display:flex; gap:8px; align-items:center; }
+  .dot { width:7px; height:7px; background:var(--border); cursor:pointer; transition:all 0.3s; }
+  .dot.on { background:var(--amber); width:22px; }
+  .ctr { font-family:'DM Mono',monospace; font-size:12px; color:rgba(255,255,255,0.28); letter-spacing:0.1em; }
+
+  .slide-tag { position:fixed; top:28px; right:40px; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--amber); text-transform:uppercase; z-index:99; }
+  .key-hint { position:fixed; top:28px; left:40px; font-family:'DM Mono',monospace; font-size:11px; color:var(--border); z-index:99; }
+  kbd { border:1px solid var(--border); padding:2px 7px; font-family:inherit; color:rgba(255,255,255,0.25); }
+
+  /* SHARED */
+  .overline { font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.22em; color:var(--amber); text-transform:uppercase; margin-bottom:12px; }
+  .slide-head { width:100%; margin-bottom:30px; }
+  .section-title { font-size:52px; font-weight:700; line-height:1.1; color:var(--white); margin-top:4px; letter-spacing:-0.02em; }
+
+  /* ── S1 ── */
+  #s1 { text-align:center; }
+  #s1::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245,166,35,0.07), transparent); pointer-events:none; }
+  .s1-eye { font-family:'DM Mono',monospace; font-size:13px; letter-spacing:0.26em; color:var(--amber); text-transform:uppercase; margin-bottom:28px; }
+  .s1-title { font-size:clamp(68px,10vw,108px); font-weight:700; line-height:1; letter-spacing:-0.03em; color:var(--white); }
+  .s1-title span { color:var(--amber); }
+  .s1-rule { width:56px; height:2px; background:var(--amber); margin:34px auto; box-shadow:0 0 12px var(--amber); }
+  .s1-sub { font-size:20px; line-height:1.75; color:var(--off); font-weight:300; max-width:600px; }
+
+  /* ── S2 ── */
+  #s2 { flex-direction:row; gap:72px; align-items:center; }
+  .s2-left, .s2-right { flex:1; }
+  .s2-h { font-size:46px; font-weight:700; line-height:1.15; letter-spacing:-0.02em; color:var(--white); margin-bottom:24px; }
+  .s2-body { font-size:18px; line-height:1.8; color:var(--off); font-weight:300; }
+  .qbox { border:1px solid var(--amber-dim); background:var(--amber-glow); padding:40px; position:relative; }
+  .qbox::before { content:'"'; font-size:100px; font-weight:700; color:var(--amber); opacity:0.18; position:absolute; top:-14px; left:20px; line-height:1; }
+  .qtext { font-size:20px; line-height:1.65; color:var(--white); font-weight:400; position:relative; z-index:1; padding-top:20px; }
+  .qsrc { font-family:'DM Mono',monospace; font-size:12px; color:rgba(245,166,35,0.4); margin-top:18px; letter-spacing:0.1em; }
+
+  /* ── S3 ── */
+  #s3 { align-items:flex-start; }
+  .phases { display:grid; grid-template-columns:1fr 1fr; gap:24px; width:100%; }
+  .phase { border:1px solid var(--border); padding:36px; position:relative; transition:border-color 0.3s, background 0.3s; }
+  .phase:hover { border-color:var(--amber-dim); background:var(--surface); }
+  .pnum { font-size:80px; font-weight:700; color:rgba(245,166,35,0.05); position:absolute; top:14px; right:22px; line-height:1; transition:color 0.3s; letter-spacing:-0.04em; }
+  .phase:hover .pnum { color:rgba(245,166,35,0.12); }
+  .ptag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; color:var(--amber); border:1px solid var(--amber-dim); background:var(--amber-glow); padding:4px 12px; display:inline-block; margin-bottom:14px; text-transform:uppercase; }
+  .ptitle { font-size:28px; font-weight:600; color:var(--white); margin-bottom:14px; letter-spacing:-0.01em; }
+  .pbody { font-size:16px; line-height:1.75; color:var(--off); font-weight:300; }
+  .steps { margin-top:20px; list-style:none; }
+  .steps li { font-family:'DM Mono',monospace; font-size:14px; color:var(--white); padding:9px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .steps li:last-child { border-bottom:none; }
+  .steps li::before { content:'→'; color:var(--amber); flex-shrink:0; }
+
+  /* ── S4 ── */
+  #s4 { align-items:flex-start; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; width:100%; }
+  .card { border:1px solid var(--border); padding:28px; transition:all 0.3s; position:relative; overflow:hidden; }
+  .card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--amber); transform:scaleX(0); transform-origin:left; transition:transform 0.3s; }
+  .card:hover::after { transform:scaleX(1); }
+  .card:hover { background:var(--surface); }
+  .cicon { font-size:28px; margin-bottom:14px; }
+  .ctitle { font-size:22px; font-weight:600; color:var(--white); margin-bottom:10px; letter-spacing:-0.01em; }
+  .cbody { font-size:15px; line-height:1.7; color:var(--off); font-weight:300; }
+
+  /* ── S5 ── */
+  #s5 { align-items:flex-start; }
+  .trows { width:100%; }
+  .trow { display:grid; grid-template-columns:220px 1fr; gap:36px; padding:22px 0; border-bottom:1px solid var(--border); align-items:start; }
+  .trow:last-child { border-bottom:none; }
+  .tlabel { font-size:22px; font-weight:600; color:var(--white); padding-top:2px; letter-spacing:-0.01em; }
+  .titems { display:flex; flex-direction:column; gap:14px; }
+  .titem { display:flex; align-items:flex-start; gap:14px; }
+  .badge { font-family:'DM Mono',monospace; font-size:11px; padding:4px 10px; border:1px solid; letter-spacing:0.1em; white-space:nowrap; flex-shrink:0; margin-top:2px; }
+  .pro { border-color:var(--green); color:var(--green); }
+  .con { border-color:var(--red); color:var(--red); }
+  .ttext { font-size:17px; line-height:1.65; color:var(--off); }
+
+  /* ── S6 — CENTERED ── */
+  #s6 { text-align:center; align-items:center; }
+  .clabel { font-family:'DM Mono',monospace; font-size:13px; letter-spacing:0.22em; color:var(--amber); text-transform:uppercase; margin-bottom:40px; }
+  .cquote { font-size:clamp(22px,2.8vw,32px); font-weight:400; line-height:1.6; color:var(--white); max-width:780px; margin:0 auto 40px; position:relative; }
+  .cquote::before { content:'"'; font-size:90px; font-weight:700; color:var(--amber); opacity:0.2; position:absolute; top:-28px; left:-20px; line-height:1; }
+  .csrc { font-family:'DM Mono',monospace; font-size:13px; color:rgba(245,166,35,0.4); letter-spacing:0.1em; margin-bottom:44px; }
+  .chips { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .chip { font-family:'DM Mono',monospace; font-size:12px; border:1px solid var(--border); padding:8px 18px; color:var(--off); letter-spacing:0.08em; transition:all 0.2s; cursor:default; }
+  .chip:hover { border-color:var(--amber); color:var(--amber); }
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar"></div>
+<div class="slide-tag" id="tag"></div>
+<div class="key-hint"><kbd>←</kbd> <kbd>→</kbd></div>
+
+<div class="deck">
+
+  <!-- 1 -->
+  <div class="slide active" id="s1" data-label="Overview">
+    <div class="s1-eye">Anthropic · 2022 → Present</div>
+    <div class="s1-title">Constitutional<br><span>AI</span></div>
+    <div class="s1-rule"></div>
+    <p class="s1-sub">A training paradigm where AI systems are guided by explicit written principles — making alignment transparent, scalable, and auditable.</p>
+  </div>
+
+  <!-- 2 -->
+  <div class="slide" id="s2" data-label="Core Idea">
+    <div class="s2-left">
+      <div class="overline">The Core Insight</div>
+      <div class="s2-h">Principles,<br>not just<br>preferences</div>
+      <p class="s2-body">Traditional RLHF relies on human raters to judge every output. Constitutional AI replaces that bottleneck with a written set of values — letting the model reason from principles directly.<br><br>Not <strong style="color:var(--white);font-weight:500">"did a human like this?"</strong> — but <strong style="color:var(--white);font-weight:500">"does this align with our values?"</strong></p>
+    </div>
+    <div class="s2-right">
+      <div class="qbox">
+        <div class="qtext">Be helpful, harmless, and honest. Avoid content that is deceptive or highly objectionable, and help people in ways that are genuinely good for them.</div>
+        <div class="qsrc">// Example constitutional principle</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="slide" id="s3" data-label="The Process">
+    <div class="slide-head">
+      <div class="overline">How It Works</div>
+      <div class="section-title">Two-Phase Training</div>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="pnum">01</div>
+        <div class="ptag">SL Phase</div>
+        <div class="ptitle">Supervised Learning</div>
+        <p class="pbody">The model generates a response, critiques it against the constitution, then revises — creating clean training data without human labeling at scale.</p>
+        <ul class="steps">
+          <li>Generate initial response</li>
+          <li>Self-critique via principles</li>
+          <li>Revise and refine output</li>
+          <li>Use revised output as training data</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pnum">02</div>
+        <div class="ptag">RLAIF Phase</div>
+        <div class="ptitle">RL from AI Feedback</div>
+        <p class="pbody">A separate AI judge uses the constitution to score response pairs at scale. The main model is fine-tuned against those AI-generated preference labels.</p>
+        <ul class="steps">
+          <li>AI judge reads the constitution</li>
+          <li>AI judge scores response pairs</li>
+          <li>Preference data generated at scale</li>
+          <li>Main model fine-tuned on scores</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="slide" id="s4" data-label="Why It Matters">
+    <div class="slide-head">
+      <div class="overline">Advantages</div>
+      <div class="section-title">Why It Matters</div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="cicon">⚖️</div><div class="ctitle">Transparency</div><p class="cbody">Values governing model behavior are written down and auditable — not buried in millions of implicit feedback labels.</p></div>
+      <div class="card"><div class="cicon">📈</div><div class="ctitle">Scalability</div><p class="cbody">RLAIF generates preference data at a fraction of human annotation cost, enabling training at massive scale.</p></div>
+      <div class="card"><div class="cicon">🧭</div><div class="ctitle">Consistency</div><p class="cbody">The same principles apply across all contexts, removing variance from different human annotators.</p></div>
+      <div class="card"><div class="cicon">🚫</div><div class="ctitle">Less Sycophancy</div><p class="cbody">Grounding in principles reduces assistant-brained behavior — the model reasons from values, not just user approval.</p></div>
+      <div class="card"><div class="cicon">🔧</div><div class="ctitle">Iterability</div><p class="cbody">If behavior needs to change, update the constitution. The principles are a direct, readable lever on model behavior.</p></div>
+      <div class="card"><div class="cicon">🛡️</div><div class="ctitle">Reduced Harm</div><p class="cbody">Explicit harm-avoidance principles reduce human raters' exposure to toxic content during feedback collection.</p></div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="slide" id="s5" data-label="Trade-offs">
+    <div class="slide-head">
+      <div class="overline">Honest Assessment</div>
+      <div class="section-title">The Trade-offs</div>
+    </div>
+    <div class="trows">
+      <div class="trow">
+        <div class="tlabel">Constitution Design</div>
+        <div class="titems">
+          <div class="titem"><span class="badge pro">PRO</span><span class="ttext">Explicit and auditable — you can read and debate the values directly</span></div>
+          <div class="titem"><span class="badge con">CON</span><span class="ttext">What you write matters enormously — poorly designed principles propagate at scale</span></div>
+        </div>
+      </div>
+      <div class="trow">
+        <div class="tlabel">AI as Judge</div>
+        <div class="titems">
+          <div class="titem"><span class="badge pro">PRO</span><span class="ttext">Scales to billions of comparisons without human fatigue or cost</span></div>
+          <div class="titem"><span class="badge con">CON</span><span class="ttext">Feedback loop is partially closed — AI judge inherits its own training biases</span></div>
+        </div>
+      </div>
+      <div class="trow">
+        <div class="tlabel">Human Signal</div>
+        <div class="titems">
+          <div class="titem"><span class="badge pro">PRO</span><span class="ttext">Reduces toxic content exposure for human annotators</span></div>
+          <div class="titem"><span class="badge con">CON</span><span class="ttext">Less direct grounding can drift from real-world preferences over time</span></div>
+        </div>
+      </div>
+      <div class="trow">
+        <div class="tlabel">Interpretability</div>
+        <div class="titems">
+          <div class="titem"><span class="badge pro">PRO</span><span class="ttext">Behavior can be explained by pointing to a specific principle</span></div>
+          <div class="titem"><span class="badge con">CON</span><span class="ttext">Model may follow the letter of a principle while violating its spirit</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="slide" id="s6" data-label="Takeaway">
+    <div class="clabel">Key Takeaway</div>
+    <div class="cquote">Constitutional AI makes alignment legible. The values shaping a model's behavior are no longer implicit in a dataset — they are written down, debatable, and changeable.</div>
+    <div class="csrc">Anthropic · "Constitutional AI: Harmlessness from AI Feedback" · 2022</div>
+    <div class="chips">
+      <span class="chip">RLHF → RLAIF</span>
+      <span class="chip">Self-Critique</span>
+      <span class="chip">Scalable Oversight</span>
+      <span class="chip">Transparent Values</span>
+      <span class="chip">Harmlessness</span>
+    </div>
+  </div>
+
+</div>
+
+<nav>
+  <button class="nb" id="prev">← PREV</button>
+  <div class="dots" id="dots"></div>
+  <button class="nb" id="next">NEXT →</button>
+  <span class="ctr" id="ctr">1 / 6</span>
+</nav>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dotsEl=document.getElementById('dots');
+  let cur=0;
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' on':'');
+    d.onclick=()=>go(i);
+    dotsEl.appendChild(d);
+  });
+  function go(n){
+    if(n<0||n>=slides.length)return;
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('out');
+    const p=cur; setTimeout(()=>slides[p].classList.remove('out'),350);
+    cur=n;
+    slides[cur].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
+    document.getElementById('ctr').textContent=`${cur+1} / ${slides.length}`;
+    document.getElementById('bar').style.width=`${((cur+1)/slides.length)*100}%`;
+    document.getElementById('tag').textContent=slides[cur].dataset.label||'';
+  }
+  document.getElementById('next').onclick=()=>go(cur+1);
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')go(cur+1);
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(cur-1);
+  });
+  go(0);
+</script>
+</body>
+</html>
