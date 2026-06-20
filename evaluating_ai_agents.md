@@ -16,8 +16,11 @@ Decomposing agents
 
 Lab 1
 1. table printed in the small jupyter notebook embedded in the platform could be hard to read as table categories increase (column shifts etc.)
-2. good idea to remove prefixes added by the model (SQL, python) and just keep runnable code, e.g. `code = code.replace("```python", "").replace("```", "")`
-3. keep agents in contained environments when giving them ability to run code
+2. good idea to remove prefixes added by the model (SQL, python) and just keep runnable code, e.g. `code = code.replace("```python", "").replace("```", "")`; although seems to fail in the output for the last cell??
+3. keep agents in contained environments when giving them ability to run code - need to be able to test this
 4. modifying router entries is an interative feedback process to improve model capability
 5. notebooks are high-level, easy to understand but limited in hands-on approach; use seems to depends from person to person
+
+Course seems to be well-organized so far.
+
 
