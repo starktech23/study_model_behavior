@@ -23,4 +23,10 @@ Lab 1
 
 Course seems to be well-organized so far.
 
+Lab 2
+1. a bit rushed, too information dense, will have to revisit
 
+Adding router and skill evaluations
+1. code-based evals especially useful to compare ground truth data with application output
+2. eval templates in LLM-as-a-judge example should be human-evaluated first before letting a separate eval LLM use it as a source-of-truth (training/tuning)
+3. graders should be application-specific rather than generic
